@@ -1,0 +1,23 @@
+{
+  "name": "hyperbutter-socket",
+  "version": "1.0.0",
+  "description": "Socket server (web and tcp) for Hyper Butter",
+  "main": "index.js",
+  "dependencies": {
+    "socket.io": "^1.7.3"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://endoplasmic@github.com/endoplasmic/hyperbutter-socket.git"
+  },
+  "author": "Scott Ysebert <endoplasmic@gmail.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/endoplasmic/hyperbutter-socket/issues"
+  },
+  "homepage": "https://github.com/endoplasmic/hyperbutter-socket#readme"
+}
