@@ -36,17 +36,19 @@ function SocketServer(config, settings) {
       connections.ws.push(socket);
 
       // send the available events
-      this.emit('get-events', socket);
+      this.emit('get-events', (error, results) => {
+        socket.send({ type: 'available-events', data: results });
+      });
 
       socket.on('message', (message) => {
         // if this is a system event we pass the socket for a callback
         if (typeof message === 'string') message = JSON.parse(message);
-        if (settings.systemEvents.indexOf(message.type) === -1) this.emit(message.type, message.data);
-        else this.emit(message.type, message.data, socket);
+        handleMessage(message, socket);
       });
 
       socket.on('disconnect', () => {
         this.emit('disconnect', socket);
+        this.emit('unsubscribe', '*', socket);
         const index = connections.ws.indexOf(socket);
         if (index !== -1) connections.ws.splice(index, 1);
       });
@@ -65,23 +67,45 @@ function SocketServer(config, settings) {
     }
   };
 
+  const handleMessage = (message, socket) => {
+    if (!settings.systemEvents.includes(message.type)) {
+      // get the callback from the message
+      const callback = (error, data) => {
+        // if we sent the "get-update" type, send it as an "update"
+        let type = message.type;
+        const chunks = type.split('.');
+        if (chunks[1] === 'get-update') {
+          chunks[1] = 'update';
+          type = chunks.join('.');
+        }
+        if (socket.send) socket.send({ type, data });
+        else if (socket.write) socket.write(JSON.stringify({ type, data }));
+      };
+      if (message.data === undefined) message.data = callback;
+      this.emit(message.type, message.data, callback);
+    } else {
+      this.emit(message.type, message.data, socket);
+    }
+  };
+
   this.createTcp = (port) => {
     const server = net.createServer((socket) => {
       this.emit('connect', socket);
       connections.tcp.push(socket);
 
       // send the available events
-      this.emit('get-events', socket);
+      this.emit('get-events', (error, results) => {
+        socket.write(JSON.stringify({ type: 'available-events', data: results }));
+      });
 
       socket.on('data', (data) => {
         const message = JSON.parse(data);
-        // if this is a system event we pass the socket for a callback
-        if (settings.systemEvents.indexOf(message.type) === -1) this.emit(message.type, message.data);
-        else this.emit(message.type, message.data, socket);
+        handleMessage(message, socket);
       });
 
       socket.on('end', () => {
         this.emit('disconnect', socket);
+        this.emit('unsubscribe', '*', socket);
         const index = connections.tcp.indexOf(socket);
         if (index !== -1) connections.tcp.splice(index, 1);
       });
